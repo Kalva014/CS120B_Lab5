@@ -1,8 +1,8 @@
 /*	Author: kennethalvarez
  *  Partner(s) Name: 
  *	Lab Section:
- *	Assignment: Lab #5  Exercise #1
- *	Exercise Description:  A car has a fuel-level sensor that sets PA3..PA0 to a value between 0 (empty) and 15 (full).
+ *	Assignment: Lab #5  Exercise #2
+ *	Exercise Description: Pressing PA1 decrements PORTC (stopping at 0). If both buttons are depressed (even if not initially simultaneously), PORTC resets to 0.
  *
  *	I acknowledge all content contained herein, excluding template or example
  *	code, is my own original work.
@@ -12,41 +12,103 @@
 #include "simAVRHeader.h"
 #endif
 
+
+enum States {Start, Init, ButtonPressed1, OnRelease1, ButtonPressed2, OnRelease2, Reset} state;
+
+
+void Tick() {
+	switch(state) { //transitions
+		case Start:
+			state = Init;
+			break;
+		case Init:
+			if((~PINA & 0x01) == 0x01) {
+				state = ButtonPressed1;
+			}
+			else if((~PINA & 0x02) == 0x02) {
+				state = ButtonPressed2;
+			}
+			else {
+				state = Init;
+			}
+				
+			if((~PINA & 0x03) == 0x03) { //RESET STATEMENT MIGHT BE WRONG
+				state = Reset;
+			}
+			break;
+		case ButtonPressed1:
+			state = OnRelease1;
+
+			if((~PINA & 0x03) == 0x03) { //RESET STATEMENT MIGHT BE WRONG
+                                state = Reset;
+                        }
+			break;
+		case OnRelease1:
+			if((~PINA & 0x01) == 0x01) {
+				state = OnRelease1;
+			}
+			else {
+				state = Init;
+			}
+			break;
+		case ButtonPressed2:
+			state = OnRelease2;
+
+			if((~PINA & 0x03) == 0x03) { //RESET STATEMENT MIGHT BE WRONG
+       				state = Reset;
+                        }
+			break;
+		case OnRelease2:
+			if((~PINA & 0x02) == 0x02) { //If button is held down then stay in release
+				state = OnRelease2;
+			}
+			else {
+				state = Init;
+			}
+			break;
+		case Reset:
+			state = Init;
+			break;
+		default:
+			break; 
+	}
+	switch(state) { //actions
+		case Start:
+			break;
+		case Init:
+			break;
+		case ButtonPressed1:
+			if(PINC < 9) {
+				PORTC = PINC +  0x01;
+			}
+			break;
+		case OnRelease1:
+			break;
+		case ButtonPressed2:
+			if(PINC > 0) {
+				PORTC = PINC - 0x01;
+			}
+			break;
+		case OnRelease2:
+			break;
+		case Reset:
+			PORTC = 0x00;
+			break;
+		default:
+			break;
+	}
+}
+
+
 int main(void) {
     /* Insert DDR and PORT initializations */
-	DDRA = 0x00; PORTA = 0xFF;
-	DDRC = 0xFF; PORTC = 0x00;
-	unsigned char TMPC = 0x00;
-		
+        DDRA = 0x00; PORTA = 0xFF;
+        DDRC = 0xFF; PORTC = 0x00;
+	state = Start; //Inital state		
+
     /* Insert your solution below */
     while (1) {
-	TMPC = 0x00;	
-	//button = ~PINA; // Since button when pushed is 0 flip every bit
-
-	if(((~PINA & 0x0F) > 0) && (~PINA & 0x0F) <= 2) {
-		TMPC = 0x20; //0010 0000
-	}
-	else if(((~PINA & 0x0F) == 3) || ((~PINA & 0x0F) == 4)) {
-		TMPC = 0x30; //0011 0000
-	}
-	else if(((~PINA & 0x0F) == 6) || ((~PINA & 0x0F) == 5)) {
-		TMPC = 0x38; //0011 1000
-	}
-	else if(((~PINA & 0x0F) == 9) || ((~PINA & 0x0F) == 8) || ((~PINA & 0x0F) == 7)) {
-		TMPC = 0x3C; //0011 1100
-	}
-	else if(((~PINA & 0x0F) == 12) || ((~PINA & 0x0F) == 11) || ((~PINA & 0x0F) == 10)) {
-		TMPC = 0x3E; //0011 1110
-	}
-	else if(((~PINA & 0x0F) == 15) || ((~PINA & 0x0F) == 14) || ((~PINA & 0x0F) == 13)) {
-		TMPC = 0x3F; //0011 1111
-	}
-
-	if(((~PINA & 0x0F) <= 4)) {
-		TMPC = TMPC | 0x40 ; //0100 0000
-	}
-	
-	PORTC = TMPC;
+	Tick();
     }
-    return 1;
+       return 1;
 }
