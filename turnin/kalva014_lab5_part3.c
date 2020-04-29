@@ -1,8 +1,8 @@
 /*	Author: kennethalvarez
  *  Partner(s) Name: 
  *	Lab Section:
- *	Assignment: Lab #5  Exercise #1
- *	Exercise Description:  A car has a fuel-level sensor that sets PA3..PA0 to a value between 0 (empty) and 15 (full).
+ *	Assignment: Lab #5  Exercise #3
+ *	Exercise Description: Create your own festive lights display 
  *
  *	I acknowledge all content contained herein, excluding template or example
  *	code, is my own original work.
@@ -11,39 +11,157 @@
 #ifdef _SIMULATE_
 #include "simAVRHeader.h"
 #endif
+                        
+enum States {Start, Init, Light13, Release13, Light24, Release24, Light35, Release35, Light46, Release46, LightAll, ReleaseLight} state;
+unsigned char tmpA;
+unsigned char tmpB;
+
+void Tick() {
+        switch(state) { //transitions
+                case Start:
+                        state = Init;
+                        break;
+                case Init:
+                        if((tmpA & 0x01) == 0x01) {
+                                state = Light13;
+                        }
+                        else {
+                                state = Init;
+                        }
+                        break;
+                case Light13:
+                        if((tmpA & 0x01) == 0x01) {
+                                state = Light13;
+                        }
+                        else {
+                                state = Release13;
+                        }
+                        break;
+                case Release13:
+                        if((tmpA & 0x01) == 0x01) {
+                                state = Light24;
+                        }
+                        else {
+                                state = Release13;
+                        }
+                        break;
+                case Light24:
+                        if((tmpA & 0x01) == 0x01) {
+                                state = Light24;
+                        }
+                        else {
+                                state = Release24;
+                        }
+                        break;
+                case Release24:
+                        if((tmpA & 0x01) == 0x01) {
+                                state = Light35;
+                        }
+                        else {
+                                state = Release24;
+                        }
+                        break;
+                case Light35:
+                        if((tmpA & 0x01) == 0x01) {
+                                state = Light35;
+                        }
+                        else {
+                                state = Release35;
+                        }
+                        break;
+                case Release35:
+                        if((tmpA & 0x01) == 0x01) {
+                                state = Light46;
+                        }
+                        else {
+                                state = Release35;
+                        }
+                        break;
+                case Light46:
+			if((tmpA & 0x01) == 0x01) {
+                                state = Light46;
+                        }
+                        else {
+                                state = Release46;
+                        }
+			break;
+		case Release46:
+			if((tmpA & 0x01) == 0x01) {
+                                state = LightAll;
+                        }
+                        else {
+                                state = Release46;
+                        }
+			break;
+		case LightAll:
+                        if((tmpA & 0x01) == 0x01) { //If button is held down then stay in release
+                                state = LightAll;
+                        }
+                        else {
+                                state = ReleaseLight;
+                        }
+                        break;
+		case ReleaseLight:
+			if((tmpA & 0x01) == 0x01) {
+				state = Init;
+			}
+			else {
+				state = ReleaseLight;
+			}
+			break;
+                default:
+                        break;
+        }
+        switch(state) { //actions
+                case Start:
+                        tmpB = 0x00;
+                        break;
+                case Init:
+                        tmpB = 0x00;
+                        break;
+                case Light13:
+                        tmpB = 0x05; //0000 0101
+                        break;
+                case Release13:
+                        break;
+                case Light24:
+                        tmpB = 0x0A; //0000 1010
+                        break;
+                case Release24:
+                        break;
+                case Light35:
+                        tmpB = 0x14; //0001 0100
+                        break;
+                case Release35:
+                        break;
+		case Light46:
+			tmpB = 0x28; //0010 1000
+			break;
+		case Release46:
+                	break;
+		case LightAll:
+                        tmpB = 0x3F; //0001 1111
+                        break;
+		case ReleaseLight:
+			break;
+                default:
+                        break;
+        }
+}
+
 
 int main(void) {
-  int main(void) {
     /* Insert DDR and PORT initializations */
-	DDRA = 0x00; PORTA = 0xFF;
-	DDRC = 0xFF; PORTC = 0x00;
-	
+        DDRA = 0x00; PORTA = 0xFF;
+        DDRB = 0xFF; PORTB = 0x00;
+        state = Start; //Inital state
+
     /* Insert your solution below */
     while (1) {
-	
-	button = ~PINA; // Since button when pushed is 0 flip every bit
-
-	if (button == 0) {
-		PORTC = 0x40;
-	}
-	else if(button <= 2) {
-		PORTC = 0x60; //0110 0000
-	}
-	else if((button <= 4) && (button > 2)) {
-		PORTC = 0x70; //0111 0000
-	}
-	else if((button <= 6) && (button >= 5)) {
-		PORTC = 0x38; //0011 1000
-	}
-	else if((button <= 9) && (button >= 7)) {
-		PORTC = 0x3C; //0011 1100
-	}
-	else if((button <= 12) && (button >= 10)) {
-		PORTC = 0x3E; //0011 1110
-	}
-	else if((button <= 15) && (button >= 13)) {
-		PORTC = 0x3F ; //0011 1111
-	}
+	tmpA = ~PINA;
+        tmpB = PINB;
+        Tick();
+	PORTB = tmpB;
     }
-    return 1;
+       return 1;
 }
